@@ -49,9 +49,12 @@ supported_formats = {
 listed_extensions = ['.bestaudio.m4a']
 
 for f in supported_formats:
-    if (not supported_formats[f]['ext'] in listed_extensions) and supported_formats[f]['ext'] != 'm4a':
+    if (
+        supported_formats[f]['ext'] not in listed_extensions
+        and supported_formats[f]['ext'] != 'm4a'
+    ):
         listed_extensions.append(supported_formats[f]['ext'])
-        
+
 processing_queue = []
 
 def gen_formats():
@@ -111,9 +114,7 @@ videoplayer = """<html>
 @app.route('/cache/<path:req_path>')
 def dir_listing(req_path):
     req_path = 'cache/{0}'.format(req_path)
-    if os.path.isfile(req_path):
-        return send_file(req_path)
-    return "Nope"
+    return send_file(req_path) if os.path.isfile(req_path) else "Nope"
 
 
 @app.route('/cache/clear')
