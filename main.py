@@ -1,5 +1,5 @@
 from flask import Flask, request, send_file, redirect
-from yt_dlp import YoutubeDL
+import youtube_dl
 import os
 import glob
 import time
@@ -147,7 +147,7 @@ def frontpage():
             fileformat = request.form['format']
 
         ydlopts = {'outtmpl': '%(id)s.%(ext)s', 'default_search': 'ytsearch', 'format': 'mp4'}
-        ydl = YoutubeDL(ydlopts)
+        ydl = youtube_dl.YoutubeDL(ydlopts)
         query = request.form['video']
         dic = ydl.extract_info(query, False)
 
@@ -160,7 +160,7 @@ def frontpage():
         else:
             filename = 'cache/' + sanitize("{0}_{1}.{2}.{3}".format(dic['title'], dic['id'], fileformat, dl_ext))
         ydlopts['outtmpl'] = filename
-        ydl = YoutubeDL(ydlopts)
+        ydl = youtube_dl.YoutubeDL(ydlopts)
         ydl.download([request.form['video']])  
 
         if 'cmd' in supported_formats[fileformat]:
