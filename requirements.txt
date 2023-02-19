@@ -1,3 +1,4 @@
 sanitize-filename
 yt-dlp
 flask
+markupsafe

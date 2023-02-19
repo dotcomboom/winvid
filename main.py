@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file, redirect
+from flask import Flask, request, send_file, redirect, send_from_directory
 from yt_dlp import YoutubeDL
 import os
 import glob
@@ -9,17 +9,18 @@ from urllib.parse import quote
 
 app = Flask('app')
 app.debug = True
-
 supported_formats = {
     "m_wmv": {
         "ext": "wmv",
-        "cmd": "ffmpeg -y -i \"{0}\" -vf scale=w=320:h=240:force_original_aspect_ratio=decrease \"{1}\"",
+        "cmd":
+        "ffmpeg -y -i \"{0}\" -vf scale=w=320:h=240:force_original_aspect_ratio=decrease \"{1}\"",
         "desc": "Medium wmv (320 x 240)"
     },
     "s_wmv": {
         "ext": "wmv",
-        "cmd": "ffmpeg -y -i \"{0}\" -filter:v fps=15 -ac 1 -b:v 200k -b:a 64k -vf scale=w=176:h=144:force_original_aspect_ratio=decrease \"{1}\"",
-        "desc": "Small wmv (176 x 144)" #
+        "cmd":
+        "ffmpeg -y -i \"{0}\" -filter:v fps=15 -ac 1 -b:v 200k -b:a 64k -vf scale=w=176:h=144:force_original_aspect_ratio=decrease \"{1}\"",
+        "desc": "Small wmv (176 x 144)"  #
     },
     "wii": {
         "ext": "flv",
@@ -29,7 +30,8 @@ supported_formats = {
     },
     "w128": {
         "ext": "wma",
-        "cmd": "ffmpeg -i \"{0}\" -ac 2 -ar 44100 -acodec wmav2 -ab 128k \"{1}\"",
+        "cmd":
+        "ffmpeg -i \"{0}\" -ac 2 -ar 44100 -acodec wmav2 -ab 128k \"{1}\"",
         "desc": "128kbps wma [transcoded]",
         "audio": True
     },
@@ -49,22 +51,23 @@ supported_formats = {
 listed_extensions = ['.bestaudio.m4a']
 
 for f in supported_formats:
-    if (
-        supported_formats[f]['ext'] not in listed_extensions
-        and supported_formats[f]['ext'] != 'm4a'
-    ):
-        listed_extensions.append(supported_formats[f]['ext'])
+	if (supported_formats[f]['ext'] not in listed_extensions
+	    and supported_formats[f]['ext'] != 'm4a'):
+		listed_extensions.append(supported_formats[f]['ext'])
 
 processing_queue = []
 
+
 def gen_formats():
-    e = '\n'
-    for form in supported_formats:
-        i = ''
-        if 'id' in supported_formats[form]:
-            i = ' id="{0}"'.format(form)
-        e += '<option value="{0}"{2}>{1}</option>\n'.format(form, supported_formats[form]['desc'], i)
-    return e
+	e = '\n'
+	for form in supported_formats:
+		i = ''
+		if 'id' in supported_formats[form]:
+			i = ' id="{0}"'.format(form)
+		e += '<option value="{0}"{2}>{1}</option>\n'.format(
+		    form, supported_formats[form]['desc'], i)
+	return e
+
 
 front = '''
 <html>
@@ -110,106 +113,127 @@ videoplayer = """<html>
 </html>
 """
 
+
 @app.route('/cache/', defaults={'req_path': ''})
 @app.route('/cache/<path:req_path>')
 def dir_listing(req_path):
-    req_path = 'cache/{0}'.format(req_path)
-    return send_file(req_path) if os.path.isfile(req_path) else "Nope"
+	req_path = 'cache/{0}'.format(req_path)
+	return send_file(req_path) if os.path.isfile(req_path) else "Nope"
 
 
 @app.route('/cache/clear')
 def clear_cache():
-    for f in glob.glob('cache/*.*'):
-        os.remove(f)
-    return 'Okay...'
+	for f in glob.glob('cache/*.*'):
+		os.remove(f)
+	return 'Okay...'
+
 
 @app.route('/delete', methods=["GET", "POST"])
 def delete_a_file():
-    print(request.args['file'])
-    if not request.args['file'].endswith('.mp4'):
-        os.remove('cache/{0}'.format(request.args['file']))
-    return redirect('/', 302)
+	print(request.args['file'])
+	if not request.args['file'].endswith('.mp4'):
+		os.remove('cache/{0}'.format(request.args['file']))
+	return redirect('/', 302)
+
 
 @app.route('/play', methods=["GET"])
 def stream_video():
 	print(request.args['file'])
 	if request.args['file'].endswith('.flv'):
 		return videoplayer.format('/cache/' + request.args['file'])
-	else:	
+	else:
 		return redirect('/cache/' + request.args['file'], 302)
 
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+    
 @app.route('/', methods=["GET", "POST"])
 def frontpage():
-    msg = 'Type a search term (more specific is better) or video url and it will show in the list of cached videos below.<br><sub>Note that for now, cached videos are public until deleted or cleared.</sub>'
-    if 'video' in request.form:
-        fileformat = 'med_wmv'
-        if request.form['format'] in supported_formats.keys():
-            fileformat = request.form['format']
+	
+    
+	msg = 'Type a search term (more specific is better) or video url and it will show in the list of cached videos below.<br><sub>Note that for now, cached videos are public until deleted or cleared.</sub>'
+	if 'video' in request.form:
+		fileformat = 'med_wmv'
+		if request.form['format'] in supported_formats.keys():
+			fileformat = request.form['format']
 
-        ydlopts = {'outtmpl': '%(id)s.%(ext)s', 'default_search': 'ytsearch', 'format': 'mp4'}
-        ydl = YoutubeDL(ydlopts)
-        query = request.form['video']
-        dic = ydl.extract_info(query, False)
+		ydlopts = {
+		    'outtmpl': '%(id)s.%(ext)s',
+		    'default_search': 'ytsearch',
+		    'format': 'mp4'
+		}
+		ydl = YoutubeDL(ydlopts)
+		query = request.form['video']
+		dic = ydl.extract_info(query, False)
 
-        dl_ext = 'mp4'
-        if 'audio' in supported_formats[fileformat]:
-            dl_ext = 'm4a'
-            ydlopts['format'] = "bestaudio[ext=m4a]"
-        if 'entries' in dic:
-            filename = 'cache/' + sanitize("{0}_{1}.{2}.{3}".format(dic['entries'][0]['title'], dic['entries'][0]['id'], fileformat, dl_ext))
-        else:
-            filename = 'cache/' + sanitize("{0}_{1}.{2}.{3}".format(dic['title'], dic['id'], fileformat, dl_ext))
-        ydlopts['outtmpl'] = filename
-        ydl = YoutubeDL(ydlopts)
-        ydl.download([request.form['video']])  
+		dl_ext = 'mp4'
+		if 'audio' in supported_formats[fileformat]:
+			dl_ext = 'm4a'
+			ydlopts['format'] = "bestaudio[ext=m4a]"
+		if 'entries' in dic:
+			filename = 'cache/' + sanitize("{0}_{1}.{2}.{3}".format(
+			    dic['entries'][0]['title'], dic['entries'][0]['id'],
+			    fileformat, dl_ext))
+		else:
+			filename = 'cache/' + sanitize("{0}_{1}.{2}.{3}".format(
+			    dic['title'], dic['id'], fileformat, dl_ext))
+		ydlopts['outtmpl'] = filename
+		ydl = YoutubeDL(ydlopts)
+		ydl.download([request.form['video']])
 
-        if 'cmd' in supported_formats[fileformat]:
-            source = filename
-            output = filename.replace('.{0}'.format(dl_ext), '.{0}'.format(supported_formats[fileformat]['ext']))
-            def process_video():
-                cmd = supported_formats[fileformat]['cmd'].format(source, output)
-                print(cmd)
+		if 'cmd' in supported_formats[fileformat]:
+			source = filename
+			output = filename.replace(
+			    '.{0}'.format(dl_ext),
+			    '.{0}'.format(supported_formats[fileformat]['ext']))
 
-                processing_queue.append(output)
-                os.system(cmd)
-                processing_queue.remove(output)
+			def process_video():
+				cmd = supported_formats[fileformat]['cmd'].format(
+				    source, output)
+				print(cmd)
 
-                os.remove(source)
+				processing_queue.append(output)
+				os.system(cmd)
+				processing_queue.remove(output)
 
-            thread = Thread(target=process_video)
-            thread.start()
+				os.remove(source)
 
-            while (not os.path.isfile(output)) or time.sleep(1):
-                pass
+			thread = Thread(target=process_video)
+			thread.start()
 
-        return redirect('/', 302)
+			while (not os.path.isfile(output)) or time.sleep(1):
+				pass
 
-    msg += "<ul>"
+		return redirect('/', 302)
 
-    autorefresh = ''
+	msg += "<ul>"
 
-    files = []
-    for ext in listed_extensions:
-        files.extend(glob.glob('cache/*.{0}'.format(ext)))
+	autorefresh = ''
 
-    for f in files:
-        if os.path.isfile(f):
-            if f in processing_queue:
-                msg += "<li><img src=\"static/spin.gif\"> <i>Processing: {0} ({1})</i></li>".format(
-                    f.replace("cache/", ""), "{0} MB".format(
-                        round(os.path.getsize(f) / (1000 * 1000), 2)))
-                autorefresh = "<meta http-equiv=\"refresh\" content=\"10\">"
-            else:
-                path = "/cache/{0}"
-                if f.endswith('.flv'):
-                    path = '/play?file={0}'
-                path = path.format(f.replace('cache/', ''))
-                msg += "<li><a href=\"/delete?file={0}\" title=\"Delete this download\"><img alt=\"Delete this download\" src=\"static/delete.png\"></a><img alt=\"Download video\" src=\"static/control_play.png\"><a href=\"{2}\">{3}</a>  <i>{1}</i></li>".format(
-                    quote(f.replace("cache/", "")), "{0} MB".format(
-                        round(os.path.getsize(f) / (1000 * 1000), 2)), path, f.replace("cache/", ""))
+	files = []
+	for ext in listed_extensions:
+		files.extend(glob.glob('cache/*.{0}'.format(ext)))
 
-    msg += "</ul>"
-    return front.format(msg, autorefresh, gen_formats())
+	for f in files:
+		if os.path.isfile(f):
+			if f in processing_queue:
+				msg += "<li><img src=\"static/spin.gif\"> <i>Processing: {0} ({1})</i></li>".format(
+				    f.replace("cache/", ""), "{0} MB".format(
+				        round(os.path.getsize(f) / (1000 * 1000), 2)))
+				autorefresh = "<meta http-equiv=\"refresh\" content=\"10\">"
+			else:
+				path = "/cache/{0}"
+				if f.endswith('.flv'):
+					path = '/play?file={0}'
+				path = path.format(f.replace('cache/', ''))
+				msg += "<li><a href=\"/delete?file={0}\" title=\"Delete this download\"><img alt=\"Delete this download\" src=\"static/delete.png\"></a><img alt=\"Download video\" src=\"static/control_play.png\"><a href=\"{2}\">{3}</a>  <i>{1}</i></li>".format(
+				    quote(f.replace("cache/", "")), "{0} MB".format(
+				        round(os.path.getsize(f) / (1000 * 1000), 2)), path,
+				    f.replace("cache/", ""))
+
+	msg += "</ul>"
+	return front.format(msg, autorefresh, gen_formats())
 
 
 app.run(host='0.0.0.0', port=8080)
