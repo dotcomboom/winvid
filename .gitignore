@@ -1,3 +1,5 @@
 cache/
 poetry.lock
 pyproject.toml
+.replit/
+.cache/replit
