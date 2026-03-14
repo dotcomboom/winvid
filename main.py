@@ -13,38 +13,43 @@ supported_formats = {
     "m_wmv": {
         "ext": "wmv",
         "cmd":
-        "ffmpeg -y -i \"{0}\" -vf scale=w=320:h=240:force_original_aspect_ratio=decrease \"{1}\"",
-        "desc": "Medium wmv (320 x 240)"
+        "ffmpeg -y -i \"{0}\" -c:v wmv1 -q:v 8 -vf fps=ntsc,scale=w=640:h=360:flags=lanczos:force_original_aspect_ratio=decrease:force_divisible_by=2:reset_sar=1 -c:a wmav1 -b:a 128k -af aformat=r=44100:cl=stereo \"{1}\"",
+        "desc": "Medium wmv (360p)"
     },
     "s_wmv": {
         "ext": "wmv",
         "cmd":
-        "ffmpeg -y -i \"{0}\" -filter:v fps=15 -ac 1 -b:v 200k -b:a 64k -vf scale=w=176:h=144:force_original_aspect_ratio=decrease \"{1}\"",
-        "desc": "Small wmv (176 x 144)"  #
+        "ffmpeg -y -i \"{0}\" -c:v wmv1 -q:v 8 -vf fps=15,scale=w=256:h=144:flags=lanczos:force_original_aspect_ratio=decrease:force_divisible_by=2:reset_sar=1 -c:a wmav1 -b:a 64k -af aformat=r=22050:cl=mono \"{1}\"",
+        "desc": "Small wmv (144p)"  #
     },
     "wii": {
         "ext": "flv",
-        "cmd": "ffmpeg -y -i \"{0}\" -c:v flv -ar 22050 -crf 28 \"{1}\"",
+        "cmd": "ffmpeg -y -i \"{0}\" -c:v flv -b:v 300k -vf fps=ntsc,scale=w=320:h=240:flags=lanczos:force_original_aspect_ratio=decrease:force_divisible_by=2:reset_sar=1 -c:a libmp3lame -b:a 48k -af aformat=r=22050:cl=mono \"{1}\"",
         "desc": "Flash for Wii browser",
         "id": True
     },
     "w128": {
         "ext": "wma",
-        "cmd":
-        "ffmpeg -i \"{0}\" -ac 2 -ar 44100 -acodec wmav2 -ab 128k \"{1}\"",
+        "cmd": "ffmpeg -y -i \"{0}\" -vn -c:a wmav2 -b:a 128k -af aformat=r=44100:cl=stereo \"{1}\"",
         "desc": "128kbps wma [transcoded]",
         "audio": True
     },
     "128": {
         "ext": "mp3",
-        "cmd": "ffmpeg -i \"{0}\" -vn -ar 44100 -ac 2 -ab 128k -f mp3 \"{1}\"",
+        "cmd": "ffmpeg -y -i \"{0}\" -vn -c:a libmp3lame -b:a 128k -af aformat=r=44100:cl=stereo \"{1}\"",
         "desc": "128kbps mp3 [transcoded]",
         "audio": True
     },
     "bestaudio": {
         "ext": "m4a",
+        "cmd": "ffmpeg -y -i \"{0}\" -vn -c:a copy \"{1}\"", # my attempt at fixing it. didnt wok
         "desc": "bestaudio m4a [broken rn?]",
         "audio": True
+    },
+    "win98": {
+        "ext": "mpg",
+        "cmd": "ffmpeg -y -i \"{0}\" -c:v mpeg1video -b:v 800k -minrate 800k -maxrate 800k -vf fps=ntsc,scale=w=320:h=240:flags=lanczos:force_original_aspect_ratio=decrease:force_divisible_by=2:reset_sar=1,pad=w=320:h=240:x=-1:y=-1 -c:a libtwolame -b:a 128k -af aformat=r=44100:cl=stereo -write_xing 1 \"{1}\"",
+        "desc": "Windows 98 (MPEG1 + MP2)",
     },
 }
 
